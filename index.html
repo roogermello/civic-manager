@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Civic Manager G9</title>
+    
+    <!-- Configurações de Web App (PWA Feeling) -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Civic Mgr">
+    
+    <!-- Ícone para Home Screen (Genérico de Carro) -->
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/55/55283.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/55/55283.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Configuração do Tema (Civic Dashboard Palette) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        civic: {
+                            dark: '#0f172a',    // Fundo Painel
+                            panel: '#1e293b',   // Cards
+                            cyan: '#06b6d4',    // Detalhes (i-MID)
+                            red: '#ef4444',     // Alertas
+                            text: '#e2e8f0'     // Texto
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Estilos globais e animações */
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            padding-bottom: 90px; /* Aumentado para compensar safe areas em iPhones */
+            -webkit-tap-highlight-color: transparent; /* Remove highlight azul ao tocar em botões no mobile */
+        }
+        
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Input Styles */
+        input, select, textarea {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            outline: none;
+            transition: all 0.2s;
+            font-size: 16px; /* Evita zoom automático no iOS ao focar no input */
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #06b6d4;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 3px;
+        }
+        
+        /* Highlight Crítico */
+        .critical-row {
+            border-left: 4px solid #ef4444;
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
+        }
+
+        .nav-item.active {
+            color: #06b6d4;
+            border-top: 2px solid #06b6d4;
+        }
+        
+        /* Ajuste para Notch/Ilha Dinâmica em iPhones */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="p-4 flex justify-between items-center bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-car-side text-civic-cyan text-2xl"></i>
+            <div>
+                <h1 class="font-bold text-lg tracking-wider">CIVIC <span class="text-civic-cyan">MANAGER</span></h1>
+                <p class="text-xs text-gray-400">Geração 9</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <p class="text-xs text-gray-400">Hodômetro</p>
+            <div class="flex items-center gap-2" onclick="editOdometer()">
+                <span id="headerOdometer" class="font-mono text-xl font-bold text-white">0</span> <span class="text-xs">km</span>
+                <i class="fa-solid fa-pen text-xs text-gray-500 cursor-pointer"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Containers -->
+    <main class="p-4 max-w-3xl mx-auto">
+        
+        <!-- DASHBOARD VIEW -->
+        <section id="view-dashboard" class="view-section space-y-4">
+            <!-- Cards de Resumo -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="glass-panel p-4 rounded-xl shadow-lg border-t-4 border-blue-500">
+                    <p class="text-xs text-gray-400 uppercase">Manutenção</p>
+                    <h3 class="text-xl font-bold mt-1 text-white" id="totalMaintenance">R$ 0,00</h3>
+                </div>
+                <div class="glass-panel p-4 rounded-xl shadow-lg border-t-4 border-purple-500">
+                    <p class="text-xs text-gray-400 uppercase">Upgrades</p>
+                    <h3 class="text-xl font-bold mt-1 text-white" id="totalUpgrades">R$ 0,00</h3>
+                </div>
+                <div class="glass-panel p-4 rounded-xl shadow-lg border-t-4 border-green-500 col-span-2">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <p class="text-xs text-gray-400 uppercase">Eficiência Média</p>
+                            <h3 class="text-2xl font-bold mt-1 text-white" id="avgConsumption">-- km/L</h3>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-400">Custo/KM</p>
+                            <p class="text-lg font-bold text-green-400" id="costPerKm">R$ 0,00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico -->
+            <div class="glass-panel p-4 rounded-xl mt-4">
+                <h3 class="text-sm font-bold mb-4 text-gray-300">Distribuição de Gastos</h3>
+                <canvas id="expenseChart" height="200"></canvas>
+            </div>
+
+            <!-- Botão Backup -->
+            <button onclick="exportData()" class="w-full mt-6 py-3 text-xs text-gray-500 hover:text-white border border-dashed border-gray-700 rounded-lg">
+                <i class="fa-solid fa-download mr-2"></i> Exportar Dados (Backup JSON)
+            </button>
+        </section>
+
+        <!-- MANUTENÇÃO VIEW -->
+        <section id="view-maintenance" class="view-section hidden space-y-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-civic-cyan">Histórico de Serviços</h2>
+                <button onclick="toggleModal('maintenanceModal')" class="bg-civic-cyan text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-cyan-400 transition">
+                    <i class="fa-solid fa-plus mr-1"></i> Novo
+                </button>
+            </div>
+            
+            <div id="maintenanceList" class="space-y-3 pb-20">
+                <!-- Items injetados via JS -->
+            </div>
+        </section>
+
+        <!-- ABASTECIMENTO VIEW -->
+        <section id="view-fuel" class="view-section hidden space-y-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-green-400">Controle de Combustível</h2>
+                <button onclick="toggleModal('fuelModal')" class="bg-green-500 text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-green-400 transition">
+                    <i class="fa-solid fa-gas-pump mr-1"></i> Abastecer
+                </button>
+            </div>
+
+            <div id="fuelList" class="space-y-3 pb-20">
+                <!-- Items injetados via JS -->
+            </div>
+        </section>
+
+        <!-- UPGRADES VIEW -->
+        <section id="view-garage" class="view-section hidden space-y-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-purple-400">Garagem & Upgrades</h2>
+                <button onclick="toggleModal('garageModal')" class="bg-purple-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-400 transition">
+                    <i class="fa-solid fa-screwdriver-wrench mr-1"></i> Adicionar
+                </button>
+            </div>
+
+            <div id="garageList" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-20">
+                <!-- Items injetados via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 w-full bg-slate-900 border-t border-slate-800 flex justify-around py-3 z-50 shadow-2xl pb-[env(safe-area-inset-bottom)]">
+        <button onclick="switchView('dashboard')" class="nav-item active flex flex-col items-center text-gray-500 w-1/4">
+            <i class="fa-solid fa-chart-pie mb-1 text-lg"></i>
+            <span class="text-[10px]">Resumo</span>
+        </button>
+        <button onclick="switchView('maintenance')" class="nav-item flex flex-col items-center text-gray-500 w-1/4">
+            <i class="fa-solid fa-wrench mb-1 text-lg"></i>
+            <span class="text-[10px]">Manutenção</span>
+        </button>
+        <button onclick="switchView('fuel')" class="nav-item flex flex-col items-center text-gray-500 w-1/4">
+            <i class="fa-solid fa-gas-pump mb-1 text-lg"></i>
+            <span class="text-[10px]">Combustível</span>
+        </button>
+        <button onclick="switchView('garage')" class="nav-item flex flex-col items-center text-gray-500 w-1/4">
+            <i class="fa-solid fa-basket-shopping mb-1 text-lg"></i>
+            <span class="text-[10px]">Upgrades</span>
+        </button>
+    </nav>
+
+    <!-- MODALS (Forms) -->
+    
+    <!-- Maintenance Modal -->
+    <div id="maintenanceModal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-xl p-6 relative animate-[fadeIn_0.2s_ease-out]">
+            <button onclick="toggleModal('maintenanceModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white p-2"><i class="fa-solid fa-times text-xl"></i></button>
+            <h3 class="text-xl font-bold text-white mb-4">Nova Manutenção</h3>
+            <form id="formMaintenance" onsubmit="handleMaintenanceSubmit(event)" class="space-y-3">
+                <input type="date" id="mDate" required>
+                <input type="number" id="mKm" placeholder="Quilometragem" required>
+                <select id="mType" required>
+                    <option value="" disabled selected>Tipo de Serviço</option>
+                    <option value="Troca de Óleo">Troca de Óleo Motor</option>
+                    <option value="Filtros">Filtros (Ar/Comb/Cabine)</option>
+                    <option value="Câmbio Automático">Câmbio Automático (CRÍTICO)</option>
+                    <option value="Freios">Freios</option>
+                    <option value="Suspensão">Suspensão</option>
+                    <option value="Pneus">Pneus</option>
+                    <option value="Outros">Outros</option>
+                </select>
+                <input type="text" id="mShop" placeholder="Oficina / Mecânico">
+                <input type="number" step="0.01" id="mCost" placeholder="Valor Total (R$)" required>
+                <textarea id="mNotes" rows="2" placeholder="Observações (Peças usadas, marca do óleo...)"></textarea>
+                <button type="submit" class="w-full bg-civic-cyan text-slate-900 font-bold py-3 rounded-lg mt-2 active:scale-95 transition-transform">Salvar Registro</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fuel Modal -->
+    <div id="fuelModal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-xl p-6 relative animate-[fadeIn_0.2s_ease-out]">
+            <button onclick="toggleModal('fuelModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white p-2"><i class="fa-solid fa-times text-xl"></i></button>
+            <h3 class="text-xl font-bold text-white mb-4">Novo Abastecimento</h3>
+            <form id="formFuel" onsubmit="handleFuelSubmit(event)" class="space-y-3">
+                <input type="date" id="fDate" required>
+                <input type="number" id="fKm" placeholder="KM Atual" required>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" step="0.01" id="fLiters" placeholder="Litros" required>
+                    <input type="number" step="0.01" id="fTotal" placeholder="Total Pago (R$)" required>
+                </div>
+                <button type="submit" class="w-full bg-green-500 text-slate-900 font-bold py-3 rounded-lg mt-2 active:scale-95 transition-transform">Salvar Abastecimento</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Garage Modal -->
+    <div id="garageModal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-xl p-6 relative animate-[fadeIn_0.2s_ease-out]">
+            <button onclick="toggleModal('garageModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white p-2"><i class="fa-solid fa-times text-xl"></i></button>
+            <h3 class="text-xl font-bold text-white mb-4">Novo Item / Upgrade</h3>
+            <form id="formGarage" onsubmit="handleGarageSubmit(event)" class="space-y-3">
+                <input type="text" id="gItem" placeholder="Nome do Item (ex: Multimídia)" required>
+                <select id="gStatus" required>
+                    <option value="Desejo">Lista de Desejos</option>
+                    <option value="Comprado">Comprado (Aguardando)</option>
+                    <option value="Instalado">Instalado</option>
+                </select>
+                <input type="number" step="0.01" id="gCost" placeholder="Custo Estimado/Real (R$)">
+                <input type="url" id="gLink" placeholder="Link de Compra (URL)">
+                <input type="url" id="gImage" placeholder="Link da Imagem (URL)">
+                <button type="submit" class="w-full bg-purple-500 text-white font-bold py-3 rounded-lg mt-2 active:scale-95 transition-transform">Salvar Item</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- STATE MANAGEMENT ---
+        const DB_KEYS = {
+            MAINTENANCE: 'civic_maintenance',
+            FUEL: 'civic_fuel',
+            GARAGE: 'civic_garage',
+            ODOMETER: 'civic_odometer'
+        };
+
+        let appData = {
+            maintenance: JSON.parse(localStorage.getItem(DB_KEYS.MAINTENANCE)) || [],
+            fuel: JSON.parse(localStorage.getItem(DB_KEYS.FUEL)) || [],
+            garage: JSON.parse(localStorage.getItem(DB_KEYS.GARAGE)) || [],
+            odometer: localStorage.getItem(DB_KEYS.ODOMETER) || 0
+        };
+
+        let chartInstance = null;
+
+        // --- INIT ---
+        window.addEventListener('DOMContentLoaded', () => {
+            renderAll();
+            setTodayDates();
+        });
+
+        function saveData() {
+            localStorage.setItem(DB_KEYS.MAINTENANCE, JSON.stringify(appData.maintenance));
+            localStorage.setItem(DB_KEYS.FUEL, JSON.stringify(appData.fuel));
+            localStorage.setItem(DB_KEYS.GARAGE, JSON.stringify(appData.garage));
+            localStorage.setItem(DB_KEYS.ODOMETER, appData.odometer);
+            renderAll();
+        }
+
+        function setTodayDates() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('mDate').value = today;
+            document.getElementById('fDate').value = today;
+        }
+
+        // --- VIEW NAVIGATION ---
+        function switchView(viewName) {
+            // Hide all sections
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            // Show selected
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            
+            // Update Nav Icons
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active', 'text-civic-cyan', 'border-t-2', 'border-civic-cyan');
+                el.classList.add('text-gray-500');
+            });
+            // Highlight active nav
+            const activeBtn = document.querySelector(`button[onclick="switchView('${viewName}')"]`);
+            if(activeBtn) {
+                activeBtn.classList.remove('text-gray-500');
+                activeBtn.classList.add('active');
+            }
+
+            if(viewName === 'dashboard') updateChart();
+        }
+
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
+        }
+
+        // --- CORE FUNCTIONS ---
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
+
+        function formatDate(dateString) {
+            if(!dateString) return '-';
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        function editOdometer() {
+            const newKm = prompt("Atualizar Hodômetro (KM Total):", appData.odometer);
+            if (newKm && !isNaN(newKm)) {
+                appData.odometer = parseInt(newKm);
+                saveData();
+            }
+        }
+
+        // --- RENDER LOGIC ---
+
+        function renderAll() {
+            document.getElementById('headerOdometer').innerText = parseInt(appData.odometer).toLocaleString('pt-BR');
+            renderMaintenance();
+            renderFuel();
+            renderGarage();
+            renderDashboardStats();
+            if(!document.getElementById('view-dashboard').classList.contains('hidden')) {
+                updateChart();
+            }
+        }
+
+        function renderMaintenance() {
+            const container = document.getElementById('maintenanceList');
+            container.innerHTML = '';
+            
+            // Ordenar por data (mais recente primeiro)
+            const sorted = [...appData.maintenance].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sorted.forEach((item, index) => {
+                const isCritical = item.type === 'Câmbio Automático';
+                const borderClass = isCritical ? 'critical-row' : 'border-l-4 border-blue-500';
+                
+                const html = `
+                    <div class="glass-panel p-3 rounded-lg relative ${borderClass}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-xs text-gray-400 font-mono">${formatDate(item.date)} • ${parseInt(item.km).toLocaleString()} km</span>
+                                <h4 class="font-bold text-white ${isCritical ? 'text-red-400' : ''}">${item.type}</h4>
+                                <p class="text-sm text-gray-300">${item.shop || 'Oficina não inf.'}</p>
+                                ${item.notes ? `<p class="text-xs text-gray-500 italic mt-1">"${item.notes}"</p>` : ''}
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-civic-cyan">${formatCurrency(item.cost)}</p>
+                                <button onclick="deleteItem('maintenance', ${appData.maintenance.indexOf(item)})" class="text-xs text-red-500 mt-2 opacity-50 hover:opacity-100"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+
+            if(sorted.length === 0) container.innerHTML = '<p class="text-center text-gray-500 mt-10">Nenhum registro de manutenção.</p>';
+        }
+
+        function renderFuel() {
+            const container = document.getElementById('fuelList');
+            container.innerHTML = '';
+            
+            // Ordenar por KM (maior KM primeiro)
+            const sorted = [...appData.fuel].sort((a, b) => b.km - a.km);
+
+            sorted.forEach((item, index) => {
+                // Calcular média se houver registro anterior (que no array sorted é o próximo, pois está invertido)
+                let efficiency = '-';
+                const prevItem = sorted[index + 1]; // O abastecimento anterior cronologicamente
+                
+                if (prevItem) {
+                    const dist = item.km - prevItem.km;
+                    const kmL = dist / item.liters;
+                    efficiency = kmL.toFixed(1) + ' km/L';
+                }
+
+                const html = `
+                    <div class="glass-panel p-3 rounded-lg border-l-4 border-green-500 flex justify-between items-center">
+                        <div>
+                            <span class="text-xs text-gray-400 font-mono">${formatDate(item.date)} • ${parseInt(item.km).toLocaleString()} km</span>
+                            <div class="flex items-baseline gap-2">
+                                <h4 class="font-bold text-white">${item.liters} L</h4>
+                                <span class="text-xs text-green-400 font-bold bg-green-900/30 px-2 py-0.5 rounded">${efficiency}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-white">${formatCurrency(item.total)}</p>
+                            <button onclick="deleteItem('fuel', ${appData.fuel.indexOf(item)})" class="text-xs text-red-500 mt-1 opacity-50 hover:opacity-100"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+            
+             if(sorted.length === 0) container.innerHTML = '<p class="text-center text-gray-500 mt-10">Nenhum abastecimento registrado.</p>';
+        }
+
+        function renderGarage() {
+            const container = document.getElementById('garageList');
+            container.innerHTML = '';
+
+            appData.garage.forEach((item, index) => {
+                let statusColor = 'bg-gray-600';
+                if(item.status === 'Comprado') statusColor = 'bg-yellow-600';
+                if(item.status === 'Instalado') statusColor = 'bg-purple-600';
+
+                const html = `
+                    <div class="glass-panel rounded-lg overflow-hidden flex flex-col h-full">
+                        ${item.image ? `<div class="h-32 bg-cover bg-center" style="background-image: url('${item.image}')"></div>` : `<div class="h-24 bg-slate-800 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`}
+                        <div class="p-3 flex-1 flex flex-col">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded ${statusColor}">${item.status}</span>
+                                <button onclick="deleteItem('garage', ${index})" class="text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                            <h4 class="font-bold text-white leading-tight mb-1">${item.item}</h4>
+                            <p class="text-civic-cyan font-bold mt-auto">${item.cost > 0 ? formatCurrency(item.cost) : '-'}</p>
+                            ${item.link ? `<a href="${item.link}" target="_blank" class="text-xs text-blue-400 mt-2 hover:underline"><i class="fa-solid fa-external-link-alt"></i> Ver Link</a>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+
+            if(appData.garage.length === 0) container.innerHTML = '<p class="text-center text-gray-500 col-span-2 mt-10">Garagem vazia. Adicione seus sonhos!</p>';
+        }
+
+        function renderDashboardStats() {
+            // Totals
+            const totalMaint = appData.maintenance.reduce((acc, curr) => acc + Number(curr.cost), 0);
+            const totalMods = appData.garage.reduce((acc, curr) => acc + Number(curr.cost), 0);
+            const totalFuel = appData.fuel.reduce((acc, curr) => acc + Number(curr.total), 0);
+            
+            document.getElementById('totalMaintenance').innerText = formatCurrency(totalMaint);
+            document.getElementById('totalUpgrades').innerText = formatCurrency(totalMods);
+
+            // Fuel Logic
+            const fuelSorted = [...appData.fuel].sort((a, b) => a.km - b.km); // Crescente
+            if(fuelSorted.length > 1) {
+                const first = fuelSorted[0];
+                const last = fuelSorted[fuelSorted.length - 1];
+                
+                const totalKmRodados = last.km - first.km;
+                // Soma litros exceto do primeiro abastecimento (pois não sabemos o que rodou antes dele)
+                // Simplificação: Soma total de litros e total de KM para uma média geral
+                const totalLiters = fuelSorted.reduce((acc, curr) => acc + Number(curr.liters), 0);
+                
+                // Cálculo mais preciso: Soma litros do segundo abastecimento em diante
+                let relevantLiters = 0;
+                for(let i=1; i<fuelSorted.length; i++) {
+                    relevantLiters += Number(fuelSorted[i].liters);
+                }
+
+                if(relevantLiters > 0 && totalKmRodados > 0) {
+                     const avg = totalKmRodados / relevantLiters;
+                     document.getElementById('avgConsumption').innerText = avg.toFixed(1) + " km/L";
+                     
+                     // Custo por KM (Gasto total relevado / Km rodado)
+                     const relevantCost = fuelSorted.slice(1).reduce((acc, curr) => acc + Number(curr.total), 0);
+                     const costKm = relevantCost / totalKmRodados;
+                     document.getElementById('costPerKm').innerText = formatCurrency(costKm) + "/km";
+                }
+            }
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            
+            const totalMaint = appData.maintenance.reduce((acc, curr) => acc + Number(curr.cost), 0);
+            const totalMods = appData.garage.reduce((acc, curr) => acc + Number(curr.cost), 0);
+            const totalFuel = appData.fuel.reduce((acc, curr) => acc + Number(curr.total), 0);
+
+            if(chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Manutenção', 'Combustível', 'Upgrades'],
+                    datasets: [{
+                        data: [totalMaint, totalFuel, totalMods],
+                        backgroundColor: ['#3b82f6', '#22c55e', '#a855f7'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        // --- HANDLERS ---
+
+        function handleMaintenanceSubmit(e) {
+            e.preventDefault();
+            const newItem = {
+                date: document.getElementById('mDate').value,
+                km: document.getElementById('mKm').value,
+                type: document.getElementById('mType').value,
+                shop: document.getElementById('mShop').value,
+                cost: parseFloat(document.getElementById('mCost').value),
+                notes: document.getElementById('mNotes').value
+            };
+            appData.maintenance.push(newItem);
+            
+            // Atualizar hodômetro se maior
+            if(Number(newItem.km) > Number(appData.odometer)) appData.odometer = newItem.km;
+
+            saveData();
+            toggleModal('maintenanceModal');
+            e.target.reset();
+        }
+
+        function handleFuelSubmit(e) {
+            e.preventDefault();
+            const newItem = {
+                date: document.getElementById('fDate').value,
+                km: document.getElementById('fKm').value,
+                liters: parseFloat(document.getElementById('fLiters').value),
+                total: parseFloat(document.getElementById('fTotal').value)
+            };
+            appData.fuel.push(newItem);
+
+            // Atualizar hodômetro se maior
+            if(Number(newItem.km) > Number(appData.odometer)) appData.odometer = newItem.km;
+
+            saveData();
+            toggleModal('fuelModal');
+            e.target.reset();
+        }
+
+        function handleGarageSubmit(e) {
+            e.preventDefault();
+            const newItem = {
+                item: document.getElementById('gItem').value,
+                status: document.getElementById('gStatus').value,
+                cost: parseFloat(document.getElementById('gCost').value) || 0,
+                link: document.getElementById('gLink').value,
+                image: document.getElementById('gImage').value
+            };
+            appData.garage.push(newItem);
+            saveData();
+            toggleModal('garageModal');
+            e.target.reset();
+        }
+
+        function deleteItem(type, index) {
+            if(confirm('Tem certeza que deseja excluir este registro?')) {
+                appData[type].splice(index, 1);
+                saveData();
+            }
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "civic_manager_backup.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+    </script>
+</body>
+</html>

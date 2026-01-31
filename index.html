@@ -100,6 +100,14 @@
             border-top: 2px solid #06b6d4;
         }
         
+        /* Toggles */
+        .toggle-btn {
+            @apply px-3 py-1 text-xs font-bold rounded-full transition-colors border border-gray-600 text-gray-400;
+        }
+        .toggle-btn.active {
+            @apply bg-civic-cyan text-slate-900 border-civic-cyan;
+        }
+        
         /* Ajuste para Notch/Ilha Dinâmica em iPhones */
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
@@ -143,7 +151,7 @@
                 <div class="glass-panel p-4 rounded-xl shadow-lg border-t-4 border-green-500 col-span-2">
                     <div class="flex justify-between items-end">
                         <div>
-                            <p class="text-xs text-gray-400 uppercase">Eficiência Média</p>
+                            <p class="text-xs text-gray-400 uppercase">Eficiência Média (Geral)</p>
                             <h3 class="text-2xl font-bold mt-1 text-white" id="avgConsumption">-- km/L</h3>
                         </div>
                         <div class="text-right">
@@ -154,7 +162,21 @@
                 </div>
             </div>
 
-            <!-- Gráfico -->
+            <!-- Gráfico de Evolução (NOVO) -->
+            <div class="glass-panel p-4 rounded-xl mt-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-gray-300">Evolução de Combustível</h3>
+                    <div class="flex gap-2">
+                        <button onclick="setFuelChartMode('week')" id="btn-week" class="toggle-btn">Semana</button>
+                        <button onclick="setFuelChartMode('month')" id="btn-month" class="toggle-btn active">Mês</button>
+                    </div>
+                </div>
+                <div class="h-64">
+                    <canvas id="fuelTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico de Distribuição -->
             <div class="glass-panel p-4 rounded-xl mt-4">
                 <h3 class="text-sm font-bold mb-4 text-gray-300">Distribuição de Gastos</h3>
                 <canvas id="expenseChart" height="200"></canvas>
@@ -312,12 +334,15 @@
             odometer: localStorage.getItem(DB_KEYS.ODOMETER) || 0
         };
 
-        let chartInstance = null;
+        let expenseChartInstance = null;
+        let trendChartInstance = null;
+        let currentFuelMode = 'month'; // 'week' or 'month'
 
         // --- INIT ---
         window.addEventListener('DOMContentLoaded', () => {
             renderAll();
             setTodayDates();
+            updateFuelChart(currentFuelMode); // Init trend chart
         });
 
         function saveData() {
@@ -326,6 +351,7 @@
             localStorage.setItem(DB_KEYS.GARAGE, JSON.stringify(appData.garage));
             localStorage.setItem(DB_KEYS.ODOMETER, appData.odometer);
             renderAll();
+            updateFuelChart(currentFuelMode);
         }
 
         function setTodayDates() {
@@ -353,7 +379,10 @@
                 activeBtn.classList.add('active');
             }
 
-            if(viewName === 'dashboard') updateChart();
+            if(viewName === 'dashboard') {
+                updateExpenseChart();
+                updateFuelChart(currentFuelMode);
+            }
         }
 
         function toggleModal(modalId) {
@@ -382,6 +411,150 @@
             }
         }
 
+        // --- FUEL TREND LOGIC ---
+        function setFuelChartMode(mode) {
+            currentFuelMode = mode;
+            // Update buttons style
+            document.getElementById('btn-week').classList.toggle('active', mode === 'week');
+            document.getElementById('btn-month').classList.toggle('active', mode === 'month');
+            updateFuelChart(mode);
+        }
+
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+            return weekNo;
+        }
+
+        function updateFuelChart(mode) {
+            const ctx = document.getElementById('fuelTrendChart').getContext('2d');
+            
+            // 1. Prepare raw data with distance info
+            // Sort by date ASC to calculate distances
+            let sortedFuel = [...appData.fuel].sort((a, b) => new Date(a.date) - new Date(b.date));
+            let enrichedFuel = sortedFuel.map((item, i) => {
+                let dist = 0;
+                if(i > 0) dist = item.km - sortedFuel[i-1].km;
+                // Simple outlier check: if dist < 0 (odometer reset?) or insane > 1000km/tank
+                if(dist < 0) dist = 0; 
+                
+                let dateObj = new Date(item.date);
+                let key = '';
+                let label = '';
+
+                if(mode === 'month') {
+                    key = item.date.substring(0, 7); // YYYY-MM
+                    // Format Label: Jan/24
+                    label = dateObj.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+                } else {
+                    // Week mode
+                    const wk = getWeekNumber(dateObj);
+                    const yr = dateObj.getFullYear();
+                    key = `${yr}-W${wk}`;
+                    label = `Sem ${wk}`;
+                }
+
+                return { ...item, dist, key, label };
+            });
+
+            // 2. Group by Key (Week or Month)
+            let grouped = {};
+            enrichedFuel.forEach(item => {
+                if(!grouped[item.key]) {
+                    grouped[item.key] = { 
+                        label: item.label, 
+                        totalCost: 0, 
+                        totalLiters: 0, 
+                        totalDist: 0,
+                        date: item.date // keep one date for sorting
+                    };
+                }
+                grouped[item.key].totalCost += item.total;
+                grouped[item.key].totalLiters += item.liters;
+                grouped[item.key].totalDist += item.dist;
+            });
+
+            // 3. Convert to array and calculate stats
+            let chartData = Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // 4. Slice last 4
+            if(chartData.length > 4) {
+                chartData = chartData.slice(chartData.length - 4);
+            }
+
+            // 5. Extract arrays for Chart.js
+            const labels = chartData.map(d => d.label);
+            const costs = chartData.map(d => d.totalCost);
+            const efficiencies = chartData.map(d => {
+                if(d.totalLiters === 0) return 0;
+                // Only calc efficiency if we have distance data (skips the very first entry of history usually)
+                return d.totalDist > 0 ? (d.totalDist / d.totalLiters).toFixed(1) : 0;
+            });
+
+            if(trendChartInstance) trendChartInstance.destroy();
+
+            trendChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Gasto (R$)',
+                            data: costs,
+                            backgroundColor: '#06b6d4', // Civic Cyan
+                            order: 2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Consumo (km/L)',
+                            data: efficiencies,
+                            borderColor: '#ef4444', // Red for visibility
+                            backgroundColor: '#ef4444',
+                            type: 'line',
+                            order: 1,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#ef4444' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
+                    }
+                }
+            });
+        }
+
+
         // --- RENDER LOGIC ---
 
         function renderAll() {
@@ -391,7 +564,8 @@
             renderGarage();
             renderDashboardStats();
             if(!document.getElementById('view-dashboard').classList.contains('hidden')) {
-                updateChart();
+                updateExpenseChart();
+                updateFuelChart(currentFuelMode);
             }
         }
 
@@ -534,16 +708,16 @@
             }
         }
 
-        function updateChart() {
+        function updateExpenseChart() {
             const ctx = document.getElementById('expenseChart').getContext('2d');
             
             const totalMaint = appData.maintenance.reduce((acc, curr) => acc + Number(curr.cost), 0);
             const totalMods = appData.garage.reduce((acc, curr) => acc + Number(curr.cost), 0);
             const totalFuel = appData.fuel.reduce((acc, curr) => acc + Number(curr.total), 0);
 
-            if(chartInstance) chartInstance.destroy();
+            if(expenseChartInstance) expenseChartInstance.destroy();
 
-            chartInstance = new Chart(ctx, {
+            expenseChartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: ['Manutenção', 'Combustível', 'Upgrades'],

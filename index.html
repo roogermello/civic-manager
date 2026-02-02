@@ -37,6 +37,9 @@
                             red: '#ef4444',     // Alertas
                             text: '#e2e8f0'     // Texto
                         }
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     }
                 }
             }
@@ -115,6 +118,38 @@
         .toggle-btn.active {
             @apply bg-civic-cyan text-slate-900 border-civic-cyan;
         }
+
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            width: 90%;
+            max-width: 400px;
+            pointer-events: none;
+        }
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #06b6d4;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            margin-bottom: 0.5rem;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease-out;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
         
         /* Ajuste para Notch/Ilha Dinâmica em iPhones */
         padding-top: env(safe-area-inset-top);
@@ -122,6 +157,9 @@
     </style>
 </head>
 <body>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
 
     <!-- Header -->
     <header class="p-4 flex justify-between items-center bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
@@ -146,6 +184,15 @@
         
         <!-- DASHBOARD VIEW -->
         <section id="view-dashboard" class="view-section space-y-4">
+            
+            <!-- ALERTA DE ÓLEO (NOVO WIDGET) -->
+            <div id="oilStatusCard" class="glass-panel p-4 rounded-xl shadow-lg border-l-4 transition-all duration-300">
+                <!-- Conteúdo injetado via JS -->
+                <div class="flex justify-between items-center animate-pulse">
+                    <span class="text-gray-400">Carregando status do óleo...</span>
+                </div>
+            </div>
+
             <!-- Cards de Resumo -->
             <div class="grid grid-cols-2 gap-4">
                 <div class="glass-panel p-4 rounded-xl shadow-lg border-t-4 border-blue-500">
@@ -170,7 +217,7 @@
                 </div>
             </div>
 
-            <!-- Gráfico de Evolução (NOVO) -->
+            <!-- Gráfico de Evolução -->
             <div class="glass-panel p-4 rounded-xl mt-4">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-sm font-bold text-gray-300">Evolução de Combustível</h3>
@@ -288,7 +335,7 @@
         </div>
     </div>
 
-    <!-- Fuel Modal (Atualizado) -->
+    <!-- Fuel Modal -->
     <div id="fuelModal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
         <div class="glass-panel w-full max-w-md rounded-xl p-6 relative animate-[fadeIn_0.2s_ease-out]">
             <button onclick="toggleModal('fuelModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white p-2"><i class="fa-solid fa-times text-xl"></i></button>
@@ -359,7 +406,8 @@
             ODOMETER: 'civic_odometer'
         };
 
-        const TANK_CAPACITY = 57; // Capacidade do Civic G9
+        const OIL_INTERVAL_KM = 10000;
+        const OIL_ALERT_INTERVAL = 2000;
 
         let appData = {
             maintenance: JSON.parse(localStorage.getItem(DB_KEYS.MAINTENANCE)) || [],
@@ -377,6 +425,7 @@
             renderAll();
             setTodayDates();
             updateFuelChart(currentFuelMode); // Init trend chart
+            checkOilStatus(); // Inicializa o card de óleo
         });
 
         function saveData() {
@@ -386,6 +435,7 @@
             localStorage.setItem(DB_KEYS.ODOMETER, appData.odometer);
             renderAll();
             updateFuelChart(currentFuelMode);
+            checkOilStatus(); // Atualiza o status do óleo após salvar
         }
 
         function setTodayDates() {
@@ -394,35 +444,31 @@
             document.getElementById('fDate').value = today;
         }
 
-        // --- VIEW NAVIGATION ---
-        function switchView(viewName) {
-            // Hide all sections
-            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            // Show selected
-            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+        // --- UI UTILS ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
             
-            // Update Nav Icons
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('active', 'text-civic-cyan', 'border-t-2', 'border-civic-cyan');
-                el.classList.add('text-gray-500');
-            });
-            // Highlight active nav
-            const activeBtn = document.querySelector(`button[onclick="switchView('${viewName}')"]`);
-            if(activeBtn) {
-                activeBtn.classList.remove('text-gray-500');
-                activeBtn.classList.add('active');
-            }
+            let icon = 'fa-info-circle';
+            let borderColor = 'border-civic-cyan';
+            
+            if(type === 'warning') { icon = 'fa-exclamation-triangle text-yellow-500'; borderColor = 'border-yellow-500'; }
+            if(type === 'danger') { icon = 'fa-bell text-red-500 animate-pulse'; borderColor = 'border-red-500'; }
+            if(type === 'success') { icon = 'fa-check-circle text-green-500'; borderColor = 'border-green-500'; }
 
-            if(viewName === 'dashboard') {
-                updateExpenseChart();
-                updateFuelChart(currentFuelMode);
-            }
-        }
-
-        function toggleModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.toggle('hidden');
-            modal.classList.toggle('flex');
+            toast.className = `toast border-l-4 ${borderColor}`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-xl"></i> <div>${message}</div>`;
+            
+            container.appendChild(toast);
+            
+            // Trigger animation
+            requestAnimationFrame(() => toast.classList.add('show'));
+            
+            // Remove after 4s
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
         }
 
         // --- CORE FUNCTIONS ---
@@ -444,6 +490,154 @@
                 saveData();
             }
         }
+
+        // --- LOGICA DE OLEO (NOVA) ---
+        function getLastOilChange() {
+            // Filtra e ordena (mais recente primeiro)
+            const oilChanges = appData.maintenance
+                .filter(m => m.type === 'Troca de Óleo')
+                .sort((a, b) => b.km - a.km);
+            
+            return oilChanges.length > 0 ? oilChanges[0] : null;
+        }
+
+        function checkOilStatus() {
+            const lastOil = getLastOilChange();
+            const card = document.getElementById('oilStatusCard');
+            const currentKm = parseInt(appData.odometer);
+
+            // Caso 1: Sem registro de troca
+            if (!lastOil) {
+                // Se não tem troca registrada, mas sabemos que está atrasado (caso manual do usuário)
+                // Vamos assumir que ele vai registrar a troca nova. 
+                // Por enquanto, mostra alerta para registrar a primeira.
+                card.className = "glass-panel p-4 rounded-xl shadow-lg border-l-4 border-yellow-500";
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h4 class="font-bold text-yellow-500"><i class="fa-solid fa-oil-can mr-2"></i>Status do Óleo</h4>
+                            <p class="text-xs text-gray-400">Nenhuma troca registrada.</p>
+                        </div>
+                        <button onclick="toggleModal('maintenanceModal')" class="text-xs bg-yellow-500/20 text-yellow-500 px-3 py-1 rounded border border-yellow-500">Registrar</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Caso 2: Calculando status
+            const kmSinceChange = currentKm - lastOil.km;
+            const kmRemaining = OIL_INTERVAL_KM - kmSinceChange;
+            const percent = Math.min(100, Math.max(0, (kmSinceChange / OIL_INTERVAL_KM) * 100));
+            
+            let statusHTML = '';
+            let borderClass = '';
+            let progressColor = '';
+            let iconClass = '';
+
+            // Lógica de Estado
+            if (kmRemaining < 0) {
+                // ATRASADO
+                const overdueKm = Math.abs(kmRemaining);
+                borderClass = 'border-red-500 bg-red-900/10';
+                progressColor = 'bg-red-500';
+                iconClass = 'fa-solid fa-triangle-exclamation text-red-500 animate-pulse';
+                
+                statusHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-bold text-red-500 flex items-center gap-2">
+                                <i class="${iconClass}"></i> ATRASADO
+                            </h4>
+                            <p class="text-xs text-red-300">Passou ${overdueKm.toLocaleString()} km do limite!</p>
+                        </div>
+                        <div class="text-right">
+                             <p class="text-xs text-gray-400">Troca feita em</p>
+                             <p class="font-bold text-white">${parseInt(lastOil.km).toLocaleString()} km</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                        <div class="${progressColor} h-2.5 rounded-full" style="width: 100%"></div>
+                    </div>
+                    <p class="text-[10px] text-center mt-1 text-red-400 font-bold">TROQUE IMEDIATAMENTE</p>
+                `;
+            } else if (kmRemaining <= 1000) {
+                // ATENÇÃO (< 1000km)
+                borderClass = 'border-yellow-500';
+                progressColor = 'bg-yellow-500';
+                
+                statusHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                         <div>
+                            <h4 class="font-bold text-yellow-500"><i class="fa-solid fa-clock mr-1"></i> Atenção</h4>
+                            <p class="text-xs text-gray-300">Faltam <b>${kmRemaining.toLocaleString()} km</b></p>
+                        </div>
+                         <div class="text-right">
+                             <p class="text-xs text-gray-400">Próxima em</p>
+                             <p class="font-bold text-white">${(parseInt(lastOil.km) + OIL_INTERVAL_KM).toLocaleString()} km</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                        <div class="${progressColor} h-2.5 rounded-full" style="width: ${percent}%"></div>
+                    </div>
+                `;
+            } else {
+                // OK
+                borderClass = 'border-civic-cyan';
+                progressColor = 'bg-civic-cyan';
+                
+                statusHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                         <div>
+                            <h4 class="font-bold text-civic-cyan"><i class="fa-solid fa-check-circle mr-1"></i> Óleo OK</h4>
+                            <p class="text-xs text-gray-300">Rodou ${kmSinceChange.toLocaleString()} km</p>
+                        </div>
+                         <div class="text-right">
+                             <p class="text-xs text-gray-400">Próxima em</p>
+                             <p class="font-bold text-white">${(parseInt(lastOil.km) + OIL_INTERVAL_KM).toLocaleString()} km</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                        <div class="${progressColor} h-2.5 rounded-full" style="width: ${percent}%"></div>
+                    </div>
+                     <p class="text-[10px] text-right mt-1 text-gray-500">Resta: ${kmRemaining.toLocaleString()} km</p>
+                `;
+            }
+
+            card.className = `glass-panel p-4 rounded-xl shadow-lg border-l-4 transition-colors duration-300 ${borderClass}`;
+            card.innerHTML = statusHTML;
+        }
+
+        // Função de Alerta de 2000km (Chamada ao atualizar Hodometro)
+        function checkOilMilestones(oldKm, newKm) {
+            const lastOil = getLastOilChange();
+            if (!lastOil) return;
+
+            const oilBaseKm = lastOil.km;
+            const distOld = oldKm - oilBaseKm;
+            const distNew = newKm - oilBaseKm;
+
+            // Se a distância atual for negativa (erro de digitação ou troca futura?), ignora
+            if (distNew < 0) return;
+
+            // Verifica se cruzamos um múltiplo de 2000
+            // Ex: Old = 1900, New = 2100 -> Cruzou 2000
+            // Ex: Old = 3900, New = 4100 -> Cruzou 4000
+            
+            const milestoneOld = Math.floor(distOld / OIL_ALERT_INTERVAL);
+            const milestoneNew = Math.floor(distNew / OIL_ALERT_INTERVAL);
+
+            if (milestoneNew > milestoneOld && milestoneNew > 0) {
+                // CRUZOU UM MILESTONE!
+                const remaining = OIL_INTERVAL_KM - distNew;
+                
+                if (remaining > 0) {
+                    showToast(`Alerta de Óleo: Você rodou mais 2.000km. Faltam ${remaining.toLocaleString()} km para a troca.`, 'warning');
+                } else {
+                    showToast(`CRÍTICO: Você passou ${Math.abs(remaining).toLocaleString()} km do ponto de troca!`, 'danger');
+                }
+            }
+        }
+
 
         // --- CALCULO AUTOMATICO NO FORMULARIO ---
         function calcFuelTotal(changedField) {
@@ -828,15 +1022,21 @@
 
         function handleFuelSubmit(e) {
             e.preventDefault();
+            const newKm = parseFloat(document.getElementById('fKm').value);
+            const oldKm = appData.odometer;
+
             const newItem = {
                 date: document.getElementById('fDate').value,
-                km: document.getElementById('fKm').value,
+                km: newKm,
                 liters: parseFloat(document.getElementById('fLiters').value),
                 total: parseFloat(document.getElementById('fTotal').value),
                 pricePerLiter: parseFloat(document.getElementById('fPrice').value) || 0,
                 fullTank: document.getElementById('fFullTank').checked
             };
             appData.fuel.push(newItem);
+
+            // Verificar milestones de óleo ANTES de salvar o novo odometro
+            checkOilMilestones(oldKm, newKm);
 
             // Atualizar hodômetro se maior
             if(Number(newItem.km) > Number(appData.odometer)) appData.odometer = newItem.km;

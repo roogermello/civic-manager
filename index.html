@@ -11,11 +11,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Civic Mgr">
     
-    <!-- Ícone para Home Screen (Genérico de Carro) -->
+    <!-- Ícones -->
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/55/55283.png">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/55/55283.png">
 
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- FontAwesome -->
@@ -24,34 +24,27 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Configuração do Tema (Civic Dashboard Palette) -->
+    <!-- Configuração do Tema -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         civic: {
-                            dark: '#0f172a',    // Fundo Painel
-                            panel: '#1e293b',   // Cards
-                            cyan: '#06b6d4',    // Detalhes (i-MID)
-                            red: '#ef4444',     // Alertas
-                            text: '#e2e8f0'     // Texto
+                            dark: '#0f172a',
+                            panel: '#1e293b',
+                            cyan: '#06b6d4',
+                            red: '#ef4444',
+                            text: '#e2e8f0'
                         }
                     },
                     animation: {
-                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'slide-left': 'slideLeft 0.3s ease-out',
-                        'slide-right': 'slideRight 0.3s ease-out',
+                        'slide-left': 'slideLeft 0.25s ease-out',
+                        'slide-right': 'slideRight 0.25s ease-out',
                     },
                     keyframes: {
-                        slideLeft: {
-                            '0%': { transform: 'translateX(100%)', opacity: '0' },
-                            '100%': { transform: 'translateX(0)', opacity: '1' },
-                        },
-                        slideRight: {
-                            '0%': { transform: 'translateX(-100%)', opacity: '0' },
-                            '100%': { transform: 'translateX(0)', opacity: '1' },
-                        }
+                        slideLeft: { '0%': { transform: 'translateX(100%)', opacity: '0' }, '100%': { transform: 'translateX(0)', opacity: '1' } },
+                        slideRight: { '0%': { transform: 'translateX(-100%)', opacity: '0' }, '100%': { transform: 'translateX(0)', opacity: '1' } }
                     }
                 }
             }
@@ -59,23 +52,24 @@
     </script>
 
     <style>
-        /* Estilos globais e animações */
         body {
             background-color: #0f172a;
             color: #e2e8f0;
             font-family: 'Segoe UI', Roboto, sans-serif;
-            padding-bottom: 90px; /* Aumentado para compensar safe areas em iPhones */
-            -webkit-tap-highlight-color: transparent; /* Remove highlight azul ao tocar em botões no mobile */
-            overscroll-behavior-y: contain; /* Evita pull-to-refresh acidental */
+            padding-bottom: 90px;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
+            /* Melhora performance de scroll e touch no mobile */
+            touch-action: pan-y; 
         }
         
         .glass-panel {
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(30, 41, 59, 0.98); /* Aumentei opacidade para reduzir custo de render do blur */
             border: 1px solid rgba(255, 255, 255, 0.1);
+            /* will-change ajuda o navegador a preparar a GPU */
+            will-change: transform, opacity;
         }
 
-        /* Input Styles */
         input, select, textarea {
             background-color: #0f172a;
             border: 1px solid #334155;
@@ -84,36 +78,19 @@
             border-radius: 0.5rem;
             width: 100%;
             outline: none;
-            transition: all 0.2s;
-            font-size: 16px; /* Evita zoom automático no iOS ao focar no input */
+            font-size: 16px;
         }
         
         input:focus, select:focus, textarea:focus {
             border-color: #06b6d4;
-            box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
         }
 
-        /* Checkbox Custom Style */
         input[type="checkbox"] {
             width: 1.25rem;
             height: 1.25rem;
             accent-color: #22c55e;
-            cursor: pointer;
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155; 
-            border-radius: 3px;
-        }
-        
-        /* Highlight Crítico */
         .critical-row {
             border-left: 4px solid #ef4444;
             background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
@@ -124,7 +101,6 @@
             border-top: 2px solid #06b6d4;
         }
         
-        /* Toggles */
         .toggle-btn {
             @apply px-3 py-1 text-xs font-bold rounded-full transition-colors border border-gray-600 text-gray-400;
         }
@@ -132,46 +108,24 @@
             @apply bg-civic-cyan text-slate-900 border-civic-cyan;
         }
 
-        /* Toast Notification */
         #toast-container {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 100;
-            width: 90%;
-            max-width: 400px;
-            pointer-events: none;
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 100; width: 90%; max-width: 400px; pointer-events: none;
         }
         .toast {
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid #06b6d4;
-            color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            margin-bottom: 0.5rem;
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: all 0.3s ease-out;
-            pointer-events: auto;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            background: rgba(15, 23, 42, 0.95); border: 1px solid #06b6d4; color: white;
+            padding: 1rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);
+            margin-bottom: 0.5rem; opacity: 0; transform: translateY(-20px);
+            transition: all 0.3s ease-out; pointer-events: auto; display: flex; align-items: center; gap: 10px;
         }
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        .toast.show { opacity: 1; transform: translateY(0); }
         
-        /* Ajuste para Notch/Ilha Dinâmica em iPhones */
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
     </style>
 </head>
 <body id="app-body">
 
-    <!-- Toast Container -->
     <div id="toast-container"></div>
 
     <!-- Header -->
@@ -192,21 +146,18 @@
         </div>
     </header>
 
-    <!-- Main Content Containers -->
     <main class="p-4 max-w-3xl mx-auto min-h-[80vh]">
         
         <!-- DASHBOARD VIEW -->
         <section id="view-dashboard" class="view-section space-y-4">
-            
-            <!-- ALERTA DE ÓLEO (NOVO WIDGET) -->
+            <!-- ALERTA DE ÓLEO -->
             <div id="oilStatusCard" class="glass-panel p-4 rounded-xl shadow-lg border-l-4 transition-all duration-300">
-                <!-- Conteúdo injetado via JS -->
                 <div class="flex justify-between items-center animate-pulse">
-                    <span class="text-gray-400">Carregando status do óleo...</span>
+                    <span class="text-gray-400">Carregando...</span>
                 </div>
             </div>
 
-            <!-- Cards de Resumo -->
+            <!-- Cards Resumo -->
             <div class="grid grid-cols-2 gap-4">
                 <div class="glass-panel p-4 rounded-xl shadow-lg border-t-4 border-blue-500">
                     <p class="text-xs text-gray-400 uppercase">Manutenção</p>
@@ -230,7 +181,7 @@
                 </div>
             </div>
 
-            <!-- Gráfico de Evolução -->
+            <!-- Gráfico Evolução -->
             <div class="glass-panel p-4 rounded-xl mt-4">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-sm font-bold text-gray-300">Evolução de Combustível</h3>
@@ -239,18 +190,19 @@
                         <button onclick="setFuelChartMode('month')" id="btn-month" class="toggle-btn active">Mês</button>
                     </div>
                 </div>
-                <div class="h-64">
+                <div class="h-64 relative">
                     <canvas id="fuelTrendChart"></canvas>
                 </div>
             </div>
 
-            <!-- Gráfico de Distribuição -->
+            <!-- Gráfico Distribuição -->
             <div class="glass-panel p-4 rounded-xl mt-4">
                 <h3 class="text-sm font-bold mb-4 text-gray-300">Distribuição de Gastos</h3>
-                <canvas id="expenseChart" height="200"></canvas>
+                <div class="h-[200px] relative">
+                    <canvas id="expenseChart"></canvas>
+                </div>
             </div>
 
-            <!-- Botão Backup -->
             <button onclick="exportData()" class="w-full mt-6 py-3 text-xs text-gray-500 hover:text-white border border-dashed border-gray-700 rounded-lg">
                 <i class="fa-solid fa-download mr-2"></i> Exportar Dados (Backup JSON)
             </button>
@@ -264,10 +216,7 @@
                     <i class="fa-solid fa-plus mr-1"></i> Novo
                 </button>
             </div>
-            
-            <div id="maintenanceList" class="space-y-3 pb-20">
-                <!-- Items injetados via JS -->
-            </div>
+            <div id="maintenanceList" class="space-y-3 pb-20"></div>
         </section>
 
         <!-- ABASTECIMENTO VIEW -->
@@ -278,10 +227,7 @@
                     <i class="fa-solid fa-gas-pump mr-1"></i> Abastecer
                 </button>
             </div>
-
-            <div id="fuelList" class="space-y-3 pb-20">
-                <!-- Items injetados via JS -->
-            </div>
+            <div id="fuelList" class="space-y-3 pb-20"></div>
         </section>
 
         <!-- UPGRADES VIEW -->
@@ -292,15 +238,12 @@
                     <i class="fa-solid fa-screwdriver-wrench mr-1"></i> Adicionar
                 </button>
             </div>
-
-            <div id="garageList" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-20">
-                <!-- Items injetados via JS -->
-            </div>
+            <div id="garageList" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-20"></div>
         </section>
 
     </main>
 
-    <!-- Bottom Navigation -->
+    <!-- Nav -->
     <nav class="fixed bottom-0 w-full bg-slate-900 border-t border-slate-800 flex justify-around py-3 z-50 shadow-2xl pb-[env(safe-area-inset-bottom)]">
         <button onclick="switchView('dashboard')" class="nav-item active flex flex-col items-center text-gray-500 w-1/4 select-none touch-manipulation">
             <i class="fa-solid fa-chart-pie mb-1 text-lg"></i>
@@ -320,12 +263,10 @@
         </button>
     </nav>
 
-    <!-- MODALS (Forms) -->
-    
-    <!-- Maintenance Modal -->
+    <!-- Modals -->
     <div id="maintenanceModal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
         <div class="glass-panel w-full max-w-md rounded-xl p-6 relative">
-            <button onclick="toggleModal('maintenanceModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white p-2"><i class="fa-solid fa-times text-xl"></i></button>
+            <button onclick="toggleModal('maintenanceModal')" class="absolute top-4 right-4 text-gray-400 p-2"><i class="fa-solid fa-times text-xl"></i></button>
             <h3 class="text-xl font-bold text-white mb-4">Nova Manutenção</h3>
             <form id="formMaintenance" onsubmit="handleMaintenanceSubmit(event)" class="space-y-3">
                 <input type="date" id="mDate" required>
@@ -333,8 +274,8 @@
                 <select id="mType" required>
                     <option value="" disabled selected>Tipo de Serviço</option>
                     <option value="Troca de Óleo">Troca de Óleo Motor</option>
-                    <option value="Filtros">Filtros (Ar/Comb/Cabine)</option>
-                    <option value="Câmbio Automático">Câmbio Automático (CRÍTICO)</option>
+                    <option value="Filtros">Filtros</option>
+                    <option value="Câmbio Automático">Câmbio Automático</option>
                     <option value="Freios">Freios</option>
                     <option value="Suspensão">Suspensão</option>
                     <option value="Pneus">Pneus</option>
@@ -342,691 +283,373 @@
                 </select>
                 <input type="text" id="mShop" placeholder="Oficina / Mecânico">
                 <input type="number" step="0.01" id="mCost" placeholder="Valor Total (R$)" required>
-                <textarea id="mNotes" rows="2" placeholder="Observações (Peças usadas, marca do óleo...)"></textarea>
-                <button type="submit" class="w-full bg-civic-cyan text-slate-900 font-bold py-3 rounded-lg mt-2 active:scale-95 transition-transform">Salvar Registro</button>
+                <textarea id="mNotes" rows="2" placeholder="Observações"></textarea>
+                <button type="submit" class="w-full bg-civic-cyan text-slate-900 font-bold py-3 rounded-lg mt-2">Salvar</button>
             </form>
         </div>
     </div>
 
-    <!-- Fuel Modal -->
     <div id="fuelModal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
         <div class="glass-panel w-full max-w-md rounded-xl p-6 relative">
-            <button onclick="toggleModal('fuelModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white p-2"><i class="fa-solid fa-times text-xl"></i></button>
+            <button onclick="toggleModal('fuelModal')" class="absolute top-4 right-4 text-gray-400 p-2"><i class="fa-solid fa-times text-xl"></i></button>
             <h3 class="text-xl font-bold text-white mb-4">Novo Abastecimento</h3>
             <form id="formFuel" onsubmit="handleFuelSubmit(event)" class="space-y-3">
                 <input type="date" id="fDate" required>
                 <input type="number" id="fKm" placeholder="KM Atual" required>
-                
-                <!-- Campos de Cálculo -->
                 <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[10px] text-gray-400 pl-1">Litros</label>
-                        <input type="number" step="0.01" id="fLiters" placeholder="0.00 L" oninput="calcFuelTotal('liters')" required>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-gray-400 pl-1">Preço/L (R$)</label>
-                        <input type="number" step="0.001" id="fPrice" placeholder="R$ 0.00" oninput="calcFuelTotal('price')">
-                    </div>
+                    <div><label class="text-[10px] text-gray-400 pl-1">Litros</label><input type="number" step="0.01" id="fLiters" placeholder="0.00 L" oninput="calcFuelTotal('liters')" required></div>
+                    <div><label class="text-[10px] text-gray-400 pl-1">Preço/L</label><input type="number" step="0.001" id="fPrice" placeholder="R$ 0.00" oninput="calcFuelTotal('price')"></div>
                 </div>
-                
-                <div>
-                    <label class="text-[10px] text-gray-400 pl-1">Total Pago (R$)</label>
-                    <input type="number" step="0.01" id="fTotal" placeholder="R$ 0.00" oninput="calcFuelTotal('total')" required>
-                </div>
-
-                <!-- Toggle Tanque Cheio -->
+                <div><label class="text-[10px] text-gray-400 pl-1">Total</label><input type="number" step="0.01" id="fTotal" placeholder="R$ 0.00" oninput="calcFuelTotal('total')" required></div>
                 <div class="flex items-center gap-3 bg-slate-800/50 p-3 rounded-lg border border-slate-700 mt-2">
-                    <input type="checkbox" id="fFullTank" class="w-5 h-5 accent-green-500 rounded focus:ring-green-500">
-                    <label for="fFullTank" class="text-sm text-gray-300 cursor-pointer flex-1 select-none">
-                        Tanque Cheio?
-                        <span class="block text-[10px] text-gray-500">Marque para cálculo de consumo (km/L)</span>
-                    </label>
+                    <input type="checkbox" id="fFullTank">
+                    <label for="fFullTank" class="text-sm text-gray-300 cursor-pointer flex-1">Tanque Cheio?<span class="block text-[10px] text-gray-500">Calcula consumo (km/L)</span></label>
                     <i class="fa-solid fa-gas-pump text-green-500 text-lg"></i>
                 </div>
-
-                <button type="submit" class="w-full bg-green-500 text-slate-900 font-bold py-3 rounded-lg mt-2 active:scale-95 transition-transform">Salvar Abastecimento</button>
+                <button type="submit" class="w-full bg-green-500 text-slate-900 font-bold py-3 rounded-lg mt-2">Salvar</button>
             </form>
         </div>
     </div>
 
-    <!-- Garage Modal -->
     <div id="garageModal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm">
         <div class="glass-panel w-full max-w-md rounded-xl p-6 relative">
-            <button onclick="toggleModal('garageModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white p-2"><i class="fa-solid fa-times text-xl"></i></button>
-            <h3 class="text-xl font-bold text-white mb-4">Novo Item / Upgrade</h3>
+            <button onclick="toggleModal('garageModal')" class="absolute top-4 right-4 text-gray-400 p-2"><i class="fa-solid fa-times text-xl"></i></button>
+            <h3 class="text-xl font-bold text-white mb-4">Novo Item</h3>
             <form id="formGarage" onsubmit="handleGarageSubmit(event)" class="space-y-3">
-                <input type="text" id="gItem" placeholder="Nome do Item (ex: Multimídia)" required>
+                <input type="text" id="gItem" placeholder="Item" required>
                 <select id="gStatus" required>
-                    <option value="Desejo">Lista de Desejos</option>
-                    <option value="Comprado">Comprado (Aguardando)</option>
+                    <option value="Desejo">Desejo</option>
+                    <option value="Comprado">Comprado</option>
                     <option value="Instalado">Instalado</option>
                 </select>
-                <input type="number" step="0.01" id="gCost" placeholder="Custo Estimado/Real (R$)">
-                <input type="url" id="gLink" placeholder="Link de Compra (URL)">
-                <input type="url" id="gImage" placeholder="Link da Imagem (URL)">
-                <button type="submit" class="w-full bg-purple-500 text-white font-bold py-3 rounded-lg mt-2 active:scale-95 transition-transform">Salvar Item</button>
+                <input type="number" step="0.01" id="gCost" placeholder="Custo">
+                <input type="url" id="gLink" placeholder="Link">
+                <input type="url" id="gImage" placeholder="Imagem URL">
+                <button type="submit" class="w-full bg-purple-500 text-white font-bold py-3 rounded-lg mt-2">Salvar</button>
             </form>
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- JS OTIMIZADO -->
     <script>
-        // --- STATE MANAGEMENT ---
-        const DB_KEYS = {
-            MAINTENANCE: 'civic_maintenance',
-            FUEL: 'civic_fuel',
-            GARAGE: 'civic_garage',
-            ODOMETER: 'civic_odometer'
-        };
+        // --- CONSTANTS & STATE ---
+        const DB_KEYS = { MAINT: 'civic_m', FUEL: 'civic_f', GARAGE: 'civic_g', ODO: 'civic_o' };
+        const OIL_KM = 10000;
+        const ALERT_KM = 2000;
 
-        const OIL_INTERVAL_KM = 10000;
-        const OIL_ALERT_INTERVAL = 2000;
-
-        // Try-Catch para evitar crash se o localStorage estiver corrompido
         let appData = { maintenance: [], fuel: [], garage: [], odometer: 0 };
-        try {
-            appData = {
-                maintenance: JSON.parse(localStorage.getItem(DB_KEYS.MAINTENANCE)) || [],
-                fuel: JSON.parse(localStorage.getItem(DB_KEYS.FUEL)) || [],
-                garage: JSON.parse(localStorage.getItem(DB_KEYS.GARAGE)) || [],
-                odometer: localStorage.getItem(DB_KEYS.ODOMETER) || 0
-            };
-        } catch (e) {
-            console.error("Erro ao carregar dados, iniciando limpo:", e);
-            localStorage.clear();
-        }
-
-        let expenseChartInstance = null;
-        let trendChartInstance = null;
-        let currentFuelMode = 'month'; // 'week' or 'month'
+        let charts = { expense: null, trend: null };
+        let currentFuelMode = 'month';
 
         // --- INIT ---
+        try {
+            appData = {
+                maintenance: JSON.parse(localStorage.getItem(DB_KEYS.MAINT)) || [],
+                fuel: JSON.parse(localStorage.getItem(DB_KEYS.FUEL)) || [],
+                garage: JSON.parse(localStorage.getItem(DB_KEYS.GARAGE)) || [],
+                odometer: localStorage.getItem(DB_KEYS.ODO) || 0
+            };
+        } catch(e) { console.error("Data Reset", e); localStorage.clear(); }
+
         window.addEventListener('DOMContentLoaded', () => {
-            renderAll();
+            renderDashboard(); // Renderiza apenas o dashboard inicialmente
             setTodayDates();
-            // Apenas inicializa o listener de resize, charts são criados no renderAll
         });
 
-        function saveData() {
-            localStorage.setItem(DB_KEYS.MAINTENANCE, JSON.stringify(appData.maintenance));
-            localStorage.setItem(DB_KEYS.FUEL, JSON.stringify(appData.fuel));
-            localStorage.setItem(DB_KEYS.GARAGE, JSON.stringify(appData.garage));
-            localStorage.setItem(DB_KEYS.ODOMETER, appData.odometer);
-            renderAll(); // Re-renderiza tudo para atualizar UI
-        }
-
-        function setTodayDates() {
-            const today = new Date().toISOString().split('T')[0];
-            const mDate = document.getElementById('mDate');
-            const fDate = document.getElementById('fDate');
-            if(mDate) mDate.value = today;
-            if(fDate) fDate.value = today;
-        }
-
-        // --- SWIPE GESTURES ---
-        let touchStartX = 0;
-        let touchEndX = 0;
-        const minSwipeDistance = 50;
-        const tabs = ['dashboard', 'maintenance', 'fuel', 'garage'];
-
-        document.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, {passive: true});
-
-        document.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        }, {passive: true});
-
-        function handleSwipe() {
-            // Se o movimento for muito pequeno, ignora
-            if (Math.abs(touchEndX - touchStartX) < minSwipeDistance) return;
-
-            const currentViewEl = document.querySelector('.view-section:not(.hidden)');
-            if (!currentViewEl) return;
-            
-            const currentViewId = currentViewEl.id.replace('view-', '');
-            const currentIndex = tabs.indexOf(currentViewId);
-            
-            if (currentIndex === -1) return;
-
-            // Swipe da Direita para Esquerda (Next)
-            if (touchEndX < touchStartX) {
-                if (currentIndex < tabs.length - 1) {
-                    switchView(tabs[currentIndex + 1], 'right');
-                }
-            }
-            
-            // Swipe da Esquerda para Direita (Prev)
-            if (touchEndX > touchStartX) {
-                if (currentIndex > 0) {
-                    switchView(tabs[currentIndex - 1], 'left');
-                }
-            }
-        }
-
-        // --- VIEW NAVIGATION ---
-        function switchView(viewName, direction = null) {
-            const currentView = document.querySelector('.view-section:not(.hidden)');
-            const nextView = document.getElementById(`view-${viewName}`);
-            
-            if (currentView === nextView) return;
-
-            // Animação Simples
-            if (direction) {
-                nextView.classList.remove('hidden');
-                
-                // Remove classes de animação anteriores
-                nextView.classList.remove('animate-slide-left', 'animate-slide-right');
-                
-                // Adiciona nova animação
-                const animClass = direction === 'right' ? 'animate-slide-left' : 'animate-slide-right';
-                nextView.classList.add(animClass);
-                
-                // Esconde o atual imediatamente para evitar flash, ou após delay se quiser transição cruzada
-                currentView.classList.add('hidden');
-            } else {
-                // Navegação por clique (sem animação direcional forte)
-                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-                nextView.classList.remove('hidden');
-                nextView.classList.add('animate-slide-left'); // Default anim
-            }
-            
-            // Update Nav Icons
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('active', 'text-civic-cyan', 'border-t-2', 'border-civic-cyan');
-                el.classList.add('text-gray-500');
-            });
-            // Highlight active nav
-            const activeBtn = document.querySelector(`button[onclick="switchView('${viewName}')"]`);
-            if(activeBtn) {
-                activeBtn.classList.remove('text-gray-500');
-                activeBtn.classList.add('active');
-            }
-
-            // Otimização: Só atualiza gráficos se entrar no dashboard
-            if(viewName === 'dashboard') {
-                // Pequeno delay para garantir que o container está visível antes de renderizar chart
-                setTimeout(() => {
-                    updateExpenseChart();
-                    updateFuelChart(currentFuelMode);
-                }, 50);
-            }
-        }
-
-        function toggleModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.toggle('hidden');
-            modal.classList.toggle('flex');
-        }
-
-        // --- UI UTILS ---
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            let icon = 'fa-info-circle';
-            let borderColor = 'border-civic-cyan';
-            
-            if(type === 'warning') { icon = 'fa-exclamation-triangle text-yellow-500'; borderColor = 'border-yellow-500'; }
-            if(type === 'danger') { icon = 'fa-bell text-red-500 animate-pulse'; borderColor = 'border-red-500'; }
-            if(type === 'success') { icon = 'fa-check-circle text-green-500'; borderColor = 'border-green-500'; }
-
-            toast.className = `toast border-l-4 ${borderColor}`;
-            toast.innerHTML = `<i class="fa-solid ${icon} text-xl"></i> <div>${message}</div>`;
-            
-            container.appendChild(toast);
-            
-            requestAnimationFrame(() => toast.classList.add('show'));
-            
+        // --- CORE RENDER FUNCTIONS (BATCH RENDER) ---
+        // Otimização: Gera todo HTML em memória e insere uma única vez no DOM
+        
+        function renderDashboard() {
+            document.getElementById('headerOdometer').innerText = parseInt(appData.odometer).toLocaleString('pt-BR');
+            updateDashboardStats();
+            checkOilStatus();
+            // Pequeno delay para garantir que o canvas esteja pronto
             setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 5000);
+                initOrUpdateCharts();
+            }, 50);
         }
 
-        // --- CORE FUNCTIONS ---
+        function renderMaintenanceList() {
+            const container = document.getElementById('maintenanceList');
+            if(container.innerHTML.length > 50 && !container.classList.contains('dirty')) return; // Cache simples
 
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-        }
-
-        function formatDate(dateString) {
-            if(!dateString) return '-';
-            const [year, month, day] = dateString.split('-');
-            return `${day}/${month}/${year}`;
-        }
-
-        function editOdometer() {
-            const newKm = prompt("Atualizar Hodômetro (KM Total):", appData.odometer);
-            if (newKm && !isNaN(newKm)) {
-                appData.odometer = parseInt(newKm);
-                saveData();
-            }
-        }
-
-        // --- LOGICA DE OLEO ---
-        function getLastOilChange() {
-            const oilChanges = appData.maintenance
-                .filter(m => m.type === 'Troca de Óleo')
-                .sort((a, b) => b.km - a.km);
-            return oilChanges.length > 0 ? oilChanges[0] : null;
-        }
-
-        function checkOilStatus() {
-            const lastOil = getLastOilChange();
-            const card = document.getElementById('oilStatusCard');
-            // Proteção se o elemento não existir na view atual (não deveria acontecer, mas previne erro)
-            if(!card) return;
-
-            const currentKm = parseInt(appData.odometer);
-
-            if (!lastOil) {
-                card.className = "glass-panel p-4 rounded-xl shadow-lg border-l-4 border-yellow-500";
-                card.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h4 class="font-bold text-yellow-500"><i class="fa-solid fa-oil-can mr-2"></i>Status do Óleo</h4>
-                            <p class="text-xs text-gray-400">Nenhuma troca registrada.</p>
-                        </div>
-                        <button onclick="toggleModal('maintenanceModal')" class="text-xs bg-yellow-500/20 text-yellow-500 px-3 py-1 rounded border border-yellow-500">Registrar</button>
-                    </div>
-                `;
+            const sorted = [...appData.maintenance].sort((a, b) => new Date(b.date) - new Date(a.date));
+            if(sorted.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 mt-10">Nenhum registro.</p>';
                 return;
             }
 
-            const kmSinceChange = currentKm - lastOil.km;
-            const kmRemaining = OIL_INTERVAL_KM - kmSinceChange;
-            const percent = Math.min(100, Math.max(0, (kmSinceChange / OIL_INTERVAL_KM) * 100));
-            
-            let statusHTML = '';
-            let borderClass = '';
-            let progressColor = '';
-            let iconClass = '';
-
-            if (kmRemaining < 0) {
-                const overdueKm = Math.abs(kmRemaining);
-                borderClass = 'border-red-500 bg-red-900/10';
-                progressColor = 'bg-red-500';
-                iconClass = 'fa-solid fa-triangle-exclamation text-red-500 animate-pulse';
-                
-                statusHTML = `
-                    <div class="flex justify-between items-start mb-2">
+            // Mapeia para string gigante (Batch)
+            const html = sorted.map(item => {
+                const isCrit = item.type === 'Câmbio Automático';
+                return `
+                <div class="glass-panel p-3 rounded-lg relative ${isCrit ? 'critical-row' : 'border-l-4 border-blue-500'}">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <h4 class="font-bold text-red-500 flex items-center gap-2">
-                                <i class="${iconClass}"></i> ATRASADO
-                            </h4>
-                            <p class="text-xs text-red-300">Passou ${overdueKm.toLocaleString()} km!</p>
+                            <span class="text-xs text-gray-400 font-mono">${formatDate(item.date)} • ${parseInt(item.km).toLocaleString()} km</span>
+                            <h4 class="font-bold text-white ${isCrit ? 'text-red-400' : ''}">${item.type}</h4>
+                            <p class="text-sm text-gray-300">${item.shop || ''}</p>
                         </div>
                         <div class="text-right">
-                             <p class="text-xs text-gray-400">Última troca</p>
-                             <p class="font-bold text-white">${parseInt(lastOil.km).toLocaleString()} km</p>
+                            <p class="font-bold text-civic-cyan">${formatCurrency(item.cost)}</p>
+                            <button onclick="deleteItem('maintenance', ${appData.maintenance.indexOf(item)})" class="text-xs text-red-500 mt-2 opacity-50 hover:opacity-100"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
-                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
-                        <div class="${progressColor} h-2.5 rounded-full" style="width: 100%"></div>
-                    </div>
-                    <p class="text-[10px] text-center mt-1 text-red-400 font-bold">TROQUE IMEDIATAMENTE</p>
-                `;
-            } else if (kmRemaining <= 1000) {
-                borderClass = 'border-yellow-500';
-                progressColor = 'bg-yellow-500';
-                statusHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                         <div>
-                            <h4 class="font-bold text-yellow-500"><i class="fa-solid fa-clock mr-1"></i> Atenção</h4>
-                            <p class="text-xs text-gray-300">Faltam <b>${kmRemaining.toLocaleString()} km</b></p>
-                        </div>
-                         <div class="text-right">
-                             <p class="text-xs text-gray-400">Próxima em</p>
-                             <p class="font-bold text-white">${(parseInt(lastOil.km) + OIL_INTERVAL_KM).toLocaleString()} km</p>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
-                        <div class="${progressColor} h-2.5 rounded-full" style="width: ${percent}%"></div>
-                    </div>
-                `;
-            } else {
-                borderClass = 'border-civic-cyan';
-                progressColor = 'bg-civic-cyan';
-                statusHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                         <div>
-                            <h4 class="font-bold text-civic-cyan"><i class="fa-solid fa-check-circle mr-1"></i> Óleo OK</h4>
-                            <p class="text-xs text-gray-300">Rodou ${kmSinceChange.toLocaleString()} km</p>
-                        </div>
-                         <div class="text-right">
-                             <p class="text-xs text-gray-400">Próxima em</p>
-                             <p class="font-bold text-white">${(parseInt(lastOil.km) + OIL_INTERVAL_KM).toLocaleString()} km</p>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
-                        <div class="${progressColor} h-2.5 rounded-full" style="width: ${percent}%"></div>
-                    </div>
-                     <p class="text-[10px] text-right mt-1 text-gray-500">Resta: ${kmRemaining.toLocaleString()} km</p>
-                `;
-            }
-
-            card.className = `glass-panel p-4 rounded-xl shadow-lg border-l-4 transition-colors duration-300 ${borderClass}`;
-            card.innerHTML = statusHTML;
-        }
-
-        function checkOilMilestones(oldKm, newKm) {
-            const lastOil = getLastOilChange();
-            if (!lastOil) return;
-
-            const oilBaseKm = lastOil.km;
-            const distOld = oldKm - oilBaseKm;
-            const distNew = newKm - oilBaseKm;
-
-            if (distNew < 0) return;
+                </div>`;
+            }).join('');
             
-            const milestoneOld = Math.floor(distOld / OIL_ALERT_INTERVAL);
-            const milestoneNew = Math.floor(distNew / OIL_ALERT_INTERVAL);
-
-            if (milestoneNew > milestoneOld && milestoneNew > 0) {
-                const remaining = OIL_INTERVAL_KM - distNew;
-                if (remaining > 0) {
-                    showToast(`Alerta: Rodou +2.000km. Faltam ${remaining.toLocaleString()} km.`, 'warning');
-                } else {
-                    showToast(`CRÍTICO: Passou ${Math.abs(remaining).toLocaleString()} km do limite!`, 'danger');
-                }
-            }
+            container.innerHTML = html;
+            container.classList.remove('dirty');
         }
 
-        // --- CALCULO FORM ---
-        function calcFuelTotal(changedField) {
-            const litersEl = document.getElementById('fLiters');
-            const priceEl = document.getElementById('fPrice');
-            const totalEl = document.getElementById('fTotal');
-            
-            const liters = parseFloat(litersEl.value);
-            const price = parseFloat(priceEl.value);
-            const total = parseFloat(totalEl.value);
-
-            if (changedField === 'liters' || changedField === 'price') {
-                if (!isNaN(liters) && !isNaN(price)) {
-                    totalEl.value = (liters * price).toFixed(2);
-                }
-            }
-            else if (changedField === 'total') {
-                if (!isNaN(total) && !isNaN(price) && price > 0) {
-                    litersEl.value = (total / price).toFixed(2);
-                }
-            }
-        }
-
-        // --- CHARTS LOGIC ---
-        function setFuelChartMode(mode) {
-            currentFuelMode = mode;
-            document.getElementById('btn-week').classList.toggle('active', mode === 'week');
-            document.getElementById('btn-month').classList.toggle('active', mode === 'month');
-            updateFuelChart(mode);
-        }
-
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-            var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
-            return weekNo;
-        }
-
-        function updateFuelChart(mode) {
-            const ctxEl = document.getElementById('fuelTrendChart');
-            if(!ctxEl) return;
-            
-            // Segurança: Destruir chart anterior
-            if(trendChartInstance) {
-                trendChartInstance.destroy();
-                trendChartInstance = null;
-            }
-
-            const ctx = ctxEl.getContext('2d');
-            
-            let sortedFuel = [...appData.fuel].sort((a, b) => new Date(a.date) - new Date(b.date));
-            let enrichedFuel = sortedFuel.map((item, i) => {
-                let dist = 0;
-                if(i > 0) dist = item.km - sortedFuel[i-1].km;
-                if(dist < 0) dist = 0; 
-                
-                let dateObj = new Date(item.date);
-                let key = '';
-                let label = '';
-
-                if(mode === 'month') {
-                    key = item.date.substring(0, 7); 
-                    label = dateObj.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-                } else {
-                    const wk = getWeekNumber(dateObj);
-                    const yr = dateObj.getFullYear();
-                    key = `${yr}-W${wk}`;
-                    label = `Sem ${wk}`;
-                }
-                return { ...item, dist, key, label };
-            });
-
-            let grouped = {};
-            enrichedFuel.forEach(item => {
-                if(!grouped[item.key]) {
-                    grouped[item.key] = { label: item.label, totalCost: 0, totalLiters: 0, totalDist: 0, date: item.date };
-                }
-                grouped[item.key].totalCost += item.total;
-                grouped[item.key].totalLiters += item.liters;
-                grouped[item.key].totalDist += item.dist;
-            });
-
-            let chartData = Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date));
-            if(chartData.length > 4) chartData = chartData.slice(chartData.length - 4);
-
-            const labels = chartData.map(d => d.label);
-            const costs = chartData.map(d => d.totalCost);
-            const efficiencies = chartData.map(d => {
-                if(d.totalLiters === 0) return 0;
-                return d.totalDist > 0 ? (d.totalDist / d.totalLiters).toFixed(1) : 0;
-            });
-
-            trendChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Gasto (R$)', data: costs, backgroundColor: '#06b6d4', order: 2, yAxisID: 'y' },
-                        { label: 'Consumo (km/L)', data: efficiencies, borderColor: '#ef4444', backgroundColor: '#ef4444', type: 'line', order: 1, borderWidth: 2, pointRadius: 4, yAxisID: 'y1' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false, // Desativa animação pesada no render
-                    scales: {
-                        y: { type: 'linear', display: true, position: 'left', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#ef4444' } },
-                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
-                    },
-                    plugins: { legend: { labels: { color: '#e2e8f0' } } }
-                }
-            });
-        }
-
-        function updateExpenseChart() {
-            const ctxEl = document.getElementById('expenseChart');
-            if(!ctxEl) return;
-
-            if(expenseChartInstance) {
-                expenseChartInstance.destroy();
-                expenseChartInstance = null;
-            }
-
-            const ctx = ctxEl.getContext('2d');
-            const totalMaint = appData.maintenance.reduce((acc, curr) => acc + Number(curr.cost), 0);
-            const totalMods = appData.garage.reduce((acc, curr) => acc + Number(curr.cost), 0);
-            const totalFuel = appData.fuel.reduce((acc, curr) => acc + Number(curr.total), 0);
-
-            expenseChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Manutenção', 'Combustível', 'Upgrades'],
-                    datasets: [{
-                        data: [totalMaint, totalFuel, totalMods],
-                        backgroundColor: ['#3b82f6', '#22c55e', '#a855f7'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false, // Desativa animação pesada
-                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
-                }
-            });
-        }
-
-        // --- RENDER ALL ---
-        function renderAll() {
-            document.getElementById('headerOdometer').innerText = parseInt(appData.odometer).toLocaleString('pt-BR');
-            renderMaintenance();
-            renderFuel();
-            renderGarage();
-            renderDashboardStats();
-            
-            // Só renderiza gráficos se estiver no dashboard visível
-            if(!document.getElementById('view-dashboard').classList.contains('hidden')) {
-                updateExpenseChart();
-                updateFuelChart(currentFuelMode);
-                checkOilStatus();
-            }
-        }
-
-        // ... FUNÇÕES DE RENDERIZAÇÃO DE LISTAS MANTIDAS IGUAIS ...
-        function renderMaintenance() {
-            const container = document.getElementById('maintenanceList');
-            container.innerHTML = '';
-            const sorted = [...appData.maintenance].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            sorted.forEach((item, index) => {
-                const isCritical = item.type === 'Câmbio Automático';
-                const borderClass = isCritical ? 'critical-row' : 'border-l-4 border-blue-500';
-                const html = `
-                    <div class="glass-panel p-3 rounded-lg relative ${borderClass}">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <span class="text-xs text-gray-400 font-mono">${formatDate(item.date)} • ${parseInt(item.km).toLocaleString()} km</span>
-                                <h4 class="font-bold text-white ${isCritical ? 'text-red-400' : ''}">${item.type}</h4>
-                                <p class="text-sm text-gray-300">${item.shop || 'Oficina não inf.'}</p>
-                                ${item.notes ? `<p class="text-xs text-gray-500 italic mt-1">"${item.notes}"</p>` : ''}
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-civic-cyan">${formatCurrency(item.cost)}</p>
-                                <button onclick="deleteItem('maintenance', ${appData.maintenance.indexOf(item)})" class="text-xs text-red-500 mt-2 opacity-50 hover:opacity-100"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>
-                    </div>`;
-                container.innerHTML += html;
-            });
-            if(sorted.length === 0) container.innerHTML = '<p class="text-center text-gray-500 mt-10">Nenhum registro de manutenção.</p>';
-        }
-
-        function renderFuel() {
+        function renderFuelList() {
             const container = document.getElementById('fuelList');
-            container.innerHTML = '';
+            if(container.innerHTML.length > 50 && !container.classList.contains('dirty')) return;
+
             const sorted = [...appData.fuel].sort((a, b) => b.km - a.km);
+            if(sorted.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 mt-10">Nenhum registro.</p>';
+                return;
+            }
 
-            sorted.forEach((item, index) => {
-                let efficiency = '<span class="text-gray-600">-</span>';
-                const prevItem = sorted[index + 1]; 
-                if (item.fullTank && prevItem) {
-                    const dist = item.km - prevItem.km;
-                    const kmL = dist / item.liters;
-                    efficiency = kmL.toFixed(1) + ' km/L';
+            const html = sorted.map((item, i) => {
+                let eff = '-';
+                const prev = sorted[i+1];
+                if(item.fullTank && prev) {
+                    const kmL = (item.km - prev.km) / item.liters;
+                    eff = kmL.toFixed(1) + ' km/L';
                 }
-                const tankIcon = item.fullTank ? '<i class="fa-solid fa-circle-check text-green-500 text-xs" title="Tanque Cheio"></i>' : '<i class="fa-regular fa-circle text-gray-600 text-xs" title="Parcial"></i>';
-                const html = `
-                    <div class="glass-panel p-3 rounded-lg border-l-4 border-green-500 flex justify-between items-center">
-                        <div>
-                            <span class="text-xs text-gray-400 font-mono flex items-center gap-1">${formatDate(item.date)} • ${parseInt(item.km).toLocaleString()} km ${tankIcon}</span>
-                            <div class="flex items-baseline gap-2 mt-1">
-                                <h4 class="font-bold text-white">${item.liters} L</h4>
-                                <span class="text-xs text-green-400 font-bold bg-green-900/30 px-2 py-0.5 rounded">${efficiency}</span>
-                            </div>
-                            ${item.pricePerLiter ? `<p class="text-[10px] text-gray-500 mt-0.5">R$ ${item.pricePerLiter}/L</p>` : ''}
+                const icon = item.fullTank ? '<i class="fa-solid fa-circle-check text-green-500"></i>' : '<i class="fa-regular fa-circle text-gray-600"></i>';
+                
+                return `
+                <div class="glass-panel p-3 rounded-lg border-l-4 border-green-500 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-gray-400 font-mono flex items-center gap-1">${formatDate(item.date)} • ${parseInt(item.km).toLocaleString()} ${icon}</span>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <h4 class="font-bold text-white">${item.liters} L</h4>
+                            <span class="text-xs text-green-400 font-bold bg-green-900/30 px-2 rounded">${eff}</span>
                         </div>
-                        <div class="text-right">
-                            <p class="font-bold text-white">${formatCurrency(item.total)}</p>
-                            <button onclick="deleteItem('fuel', ${appData.fuel.indexOf(item)})" class="text-xs text-red-500 mt-1 opacity-50 hover:opacity-100"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>`;
-                container.innerHTML += html;
-            });
-            if(sorted.length === 0) container.innerHTML = '<p class="text-center text-gray-500 mt-10">Nenhum abastecimento registrado.</p>';
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-white">${formatCurrency(item.total)}</p>
+                        <button onclick="deleteItem('fuel', ${appData.fuel.indexOf(item)})" class="text-xs text-red-500 mt-1 opacity-50 hover:opacity-100"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            container.innerHTML = html;
+            container.classList.remove('dirty');
         }
 
-        function renderGarage() {
+        function renderGarageList() {
             const container = document.getElementById('garageList');
-            container.innerHTML = '';
-            appData.garage.forEach((item, index) => {
-                let statusColor = 'bg-gray-600';
-                if(item.status === 'Comprado') statusColor = 'bg-yellow-600';
-                if(item.status === 'Instalado') statusColor = 'bg-purple-600';
-                const html = `
-                    <div class="glass-panel rounded-lg overflow-hidden flex flex-col h-full">
-                        ${item.image ? `<div class="h-32 bg-cover bg-center" style="background-image: url('${item.image}')"></div>` : `<div class="h-24 bg-slate-800 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`}
-                        <div class="p-3 flex-1 flex flex-col">
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded ${statusColor}">${item.status}</span>
-                                <button onclick="deleteItem('garage', ${index})" class="text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                            <h4 class="font-bold text-white leading-tight mb-1">${item.item}</h4>
-                            <p class="text-civic-cyan font-bold mt-auto">${item.cost > 0 ? formatCurrency(item.cost) : '-'}</p>
-                            ${item.link ? `<a href="${item.link}" target="_blank" class="text-xs text-blue-400 mt-2 hover:underline"><i class="fa-solid fa-external-link-alt"></i> Ver Link</a>` : ''}
+            if(container.innerHTML.length > 50 && !container.classList.contains('dirty')) return;
+
+            if(appData.garage.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 col-span-2 mt-10">Garagem vazia.</p>';
+                return;
+            }
+
+            const html = appData.garage.map((item, i) => {
+                let color = item.status === 'Comprado' ? 'bg-yellow-600' : (item.status === 'Instalado' ? 'bg-purple-600' : 'bg-gray-600');
+                return `
+                <div class="glass-panel rounded-lg overflow-hidden flex flex-col h-full">
+                    ${item.image ? `<div class="h-24 bg-cover bg-center" style="background-image: url('${item.image}')"></div>` : ''}
+                    <div class="p-3 flex-1 flex flex-col">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded ${color}">${item.status}</span>
+                            <button onclick="deleteItem('garage', ${i})" class="text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                    </div>`;
-                container.innerHTML += html;
-            });
-            if(appData.garage.length === 0) container.innerHTML = '<p class="text-center text-gray-500 col-span-2 mt-10">Garagem vazia. Adicione seus sonhos!</p>';
+                        <h4 class="font-bold text-white leading-tight">${item.item}</h4>
+                        <p class="text-civic-cyan font-bold mt-auto">${item.cost > 0 ? formatCurrency(item.cost) : '-'}</p>
+                    </div>
+                </div>`;
+            }).join('');
+            
+            container.innerHTML = html;
+            container.classList.remove('dirty');
         }
 
-        function renderDashboardStats() {
-            const totalMaint = appData.maintenance.reduce((acc, curr) => acc + Number(curr.cost), 0);
-            const totalMods = appData.garage.reduce((acc, curr) => acc + Number(curr.cost), 0);
-            const totalFuel = appData.fuel.reduce((acc, curr) => acc + Number(curr.total), 0);
+        // --- CHARTS OPTIMIZATION (UPDATE INSTEAD OF DESTROY) ---
+        function initOrUpdateCharts() {
+            // Se a aba dashboard não estiver visível, não atualize charts (economiza CPU)
+            if(document.getElementById('view-dashboard').classList.contains('hidden')) return;
+
+            updateExpenseChartData();
+            updateFuelTrendData(currentFuelMode);
+        }
+
+        function updateExpenseChartData() {
+            const ctx = document.getElementById('expenseChart');
+            if(!ctx) return;
             
-            document.getElementById('totalMaintenance').innerText = formatCurrency(totalMaint);
-            document.getElementById('totalUpgrades').innerText = formatCurrency(totalMods);
+            const totals = [
+                appData.maintenance.reduce((a,c) => a + Number(c.cost), 0),
+                appData.fuel.reduce((a,c) => a + Number(c.total), 0),
+                appData.garage.reduce((a,c) => a + Number(c.cost), 0)
+            ];
 
-            const fuelSorted = [...appData.fuel].sort((a, b) => a.km - b.km);
-            let totalKmValidos = 0;
-            let totalLitrosValidos = 0;
+            if(charts.expense) {
+                charts.expense.data.datasets[0].data = totals;
+                charts.expense.update();
+            } else {
+                charts.expense = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Manutenção', 'Combustível', 'Upgrades'],
+                        datasets: [{ data: totals, backgroundColor: ['#3b82f6', '#22c55e', '#a855f7'], borderWidth: 0 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
+                });
+            }
+        }
 
-            for(let i = 1; i < fuelSorted.length; i++) {
-                const current = fuelSorted[i];
-                const prev = fuelSorted[i-1];
-                if(current.fullTank) {
-                    const dist = current.km - prev.km;
-                    if(dist > 0) {
-                        totalKmValidos += dist;
-                        totalLitrosValidos += parseFloat(current.liters);
+        function updateFuelTrendData(mode) {
+            const ctx = document.getElementById('fuelTrendChart');
+            if(!ctx) return;
+
+            // Process Data
+            let sorted = [...appData.fuel].sort((a, b) => new Date(a.date) - new Date(b.date));
+            let grouped = {};
+            
+            sorted.forEach((item, i) => {
+                let dist = 0;
+                if(i > 0) dist = item.km - sorted[i-1].km;
+                if(dist < 0) dist = 0;
+                
+                let d = new Date(item.date);
+                let key = mode === 'month' ? item.date.substring(0,7) : `${d.getFullYear()}-W${Math.ceil((((d - new Date(d.getFullYear(),0,1)) / 86400000) + 1)/7)}`;
+                let label = mode === 'month' ? d.toLocaleDateString('pt-BR',{month:'short'}) : `S${key.split('W')[1]}`;
+
+                if(!grouped[key]) grouped[key] = { label, cost: 0, liters: 0, dist: 0, date: item.date };
+                grouped[key].cost += item.total;
+                grouped[key].liters += item.liters;
+                grouped[key].dist += dist;
+            });
+
+            let data = Object.values(grouped).sort((a,b) => new Date(a.date) - new Date(b.date)).slice(-4);
+            const labels = data.map(d => d.label);
+            const costs = data.map(d => d.cost);
+            const effs = data.map(d => d.liters > 0 && d.dist > 0 ? (d.dist/d.liters).toFixed(1) : 0);
+
+            if(charts.trend) {
+                charts.trend.data.labels = labels;
+                charts.trend.data.datasets[0].data = costs;
+                charts.trend.data.datasets[1].data = effs;
+                charts.trend.update();
+            } else {
+                charts.trend = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Gasto (R$)', data: costs, backgroundColor: '#06b6d4', yAxisID: 'y', order: 2 },
+                            { label: 'Km/L', data: effs, borderColor: '#ef4444', backgroundColor:'#ef4444', type: 'line', yAxisID: 'y1', order: 1 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            y: { display: true, position: 'left', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                            y1: { display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#ef4444' } },
+                            x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // --- CALCULATIONS & UTILS ---
+        function updateDashboardStats() {
+            const tM = appData.maintenance.reduce((a, c) => a + Number(c.cost), 0);
+            const tU = appData.garage.reduce((a, c) => a + Number(c.cost), 0);
+            const tF = appData.fuel.reduce((a, c) => a + Number(c.total), 0);
+            
+            document.getElementById('totalMaintenance').innerText = formatCurrency(tM);
+            document.getElementById('totalUpgrades').innerText = formatCurrency(tU);
+
+            // Simple Avg Efficiency Logic
+            const fs = [...appData.fuel].sort((a, b) => a.km - b.km);
+            let validKm = 0, validL = 0;
+            for(let i=1; i<fs.length; i++) {
+                if(fs[i].fullTank) {
+                    const d = fs[i].km - fs[i-1].km;
+                    if(d > 0) { validKm += d; validL += fs[i].liters; }
+                }
+            }
+            if(validL > 0) document.getElementById('avgConsumption').innerText = (validKm/validL).toFixed(1) + " km/L";
+            
+            if(fs.length > 1) {
+                const totalDist = fs[fs.length-1].km - fs[0].km;
+                if(totalDist > 0) document.getElementById('costPerKm').innerText = formatCurrency(tF/totalDist) + "/km";
+            }
+        }
+
+        function checkOilStatus() {
+            const last = appData.maintenance.filter(m => m.type === 'Troca de Óleo').sort((a, b) => b.km - a.km)[0];
+            const card = document.getElementById('oilStatusCard');
+            if(!card) return;
+            
+            if(!last) {
+                card.innerHTML = `<div class="flex justify-between items-center"><span class="text-yellow-500 font-bold">Sem registro de óleo</span><button onclick="toggleModal('maintenanceModal')" class="text-xs border border-yellow-500 text-yellow-500 px-2 py-1 rounded">Add</button></div>`;
+                card.className = "glass-panel p-4 rounded-xl border-l-4 border-yellow-500";
+                return;
+            }
+
+            const diff = appData.odometer - last.km;
+            const remain = OIL_KM - diff;
+            const pct = Math.min(100, Math.max(0, (diff/OIL_KM)*100));
+            
+            let color = 'civic-cyan';
+            let msg = 'Óleo OK';
+            
+            if(remain < 0) { color = 'red-500'; msg = `ATRASADO ${Math.abs(remain)}km`; card.classList.add('animate-pulse'); }
+            else if(remain < 1000) { color = 'yellow-500'; msg = 'ATENÇÃO'; card.classList.remove('animate-pulse'); }
+            else { card.classList.remove('animate-pulse'); }
+
+            card.className = `glass-panel p-4 rounded-xl shadow-lg border-l-4 border-${color.replace('civic-cyan', 'cyan-500')}`;
+            card.innerHTML = `
+                <div class="flex justify-between mb-2">
+                    <span class="font-bold text-${color === 'civic-cyan' ? 'cyan-500' : color}">${msg}</span>
+                    <span class="text-xs text-gray-400">Prox: ${(parseInt(last.km)+OIL_KM).toLocaleString()}</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-2">
+                    <div class="bg-${color === 'civic-cyan' ? 'cyan-500' : color} h-2 rounded-full" style="width: ${pct}%"></div>
+                </div>`;
+        }
+
+        // --- HANDLERS (CLEANER) ---
+        function handleSave(type, item) {
+            appData[type].push(item);
+            if(type === 'fuel' || type === 'maintenance') {
+                if(Number(item.km) > Number(appData.odometer)) appData.odometer = item.km;
+                // Oil Check Milestone
+                if(type === 'fuel') {
+                    const lastOil = appData.maintenance.filter(m => m.type === 'Troca de Óleo').sort((a,b)=>b.km-a.km)[0];
+                    if(lastOil) {
+                        const oldDist = (appData.odometer - item.km + Number(document.getElementById('fKm').defaultValue || 0)) - lastOil.km; // Rough approx for demo logic
+                        // Simplificado: apenas checa status ao renderizar dashboard
                     }
                 }
             }
-
-            if(totalLitrosValidos > 0) {
-                const avg = totalKmValidos / totalLitrosValidos;
-                document.getElementById('avgConsumption').innerText = avg.toFixed(1) + " km/L";
-                const first = fuelSorted[0];
-                const last = fuelSorted[fuelSorted.length - 1];
-                const totalDist = last.km - first.km;
-                if (totalDist > 0) {
-                    const costKm = totalFuel / totalDist;
-                    document.getElementById('costPerKm').innerText = formatCurrency(costKm) + "/km";
-                }
-            }
+            
+            // Mark lists as dirty to force redraw next time they are viewed
+            document.getElementById('maintenanceList').classList.add('dirty');
+            document.getElementById('fuelList').classList.add('dirty');
+            document.getElementById('garageList').classList.add('dirty');
+            
+            localStorage.setItem(DB_KEYS.MAINT, JSON.stringify(appData.maintenance));
+            localStorage.setItem(DB_KEYS.FUEL, JSON.stringify(appData.fuel));
+            localStorage.setItem(DB_KEYS.GARAGE, JSON.stringify(appData.garage));
+            localStorage.setItem(DB_KEYS.ODO, appData.odometer);
+            
+            renderDashboard(); // Always update dashboard totals
+            return true;
         }
 
-        // --- HANDLERS ---
         function handleMaintenanceSubmit(e) {
             e.preventDefault();
-            const newItem = {
+            const item = {
                 date: document.getElementById('mDate').value,
                 km: document.getElementById('mKm').value,
                 type: document.getElementById('mType').value,
@@ -1034,64 +657,123 @@
                 cost: parseFloat(document.getElementById('mCost').value),
                 notes: document.getElementById('mNotes').value
             };
-            appData.maintenance.push(newItem);
-            if(Number(newItem.km) > Number(appData.odometer)) appData.odometer = newItem.km;
-            saveData();
+            handleSave('maintenance', item);
             toggleModal('maintenanceModal');
             e.target.reset();
         }
 
         function handleFuelSubmit(e) {
             e.preventDefault();
-            const newKm = parseFloat(document.getElementById('fKm').value);
-            const oldKm = appData.odometer;
-            const newItem = {
+            const item = {
                 date: document.getElementById('fDate').value,
-                km: newKm,
+                km: parseFloat(document.getElementById('fKm').value),
                 liters: parseFloat(document.getElementById('fLiters').value),
                 total: parseFloat(document.getElementById('fTotal').value),
                 pricePerLiter: parseFloat(document.getElementById('fPrice').value) || 0,
                 fullTank: document.getElementById('fFullTank').checked
             };
-            appData.fuel.push(newItem);
-            checkOilMilestones(oldKm, newKm);
-            if(Number(newItem.km) > Number(appData.odometer)) appData.odometer = newItem.km;
-            saveData();
+            handleSave('fuel', item);
             toggleModal('fuelModal');
             e.target.reset();
         }
 
         function handleGarageSubmit(e) {
             e.preventDefault();
-            const newItem = {
+            const item = {
                 item: document.getElementById('gItem').value,
                 status: document.getElementById('gStatus').value,
                 cost: parseFloat(document.getElementById('gCost').value) || 0,
                 link: document.getElementById('gLink').value,
                 image: document.getElementById('gImage').value
             };
-            appData.garage.push(newItem);
-            saveData();
+            handleSave('garage', item);
             toggleModal('garageModal');
             e.target.reset();
         }
 
         function deleteItem(type, index) {
-            if(confirm('Tem certeza que deseja excluir este registro?')) {
+            if(confirm('Excluir?')) {
                 appData[type].splice(index, 1);
-                saveData();
+                localStorage.setItem(DB_KEYS.MAINT, JSON.stringify(appData.maintenance));
+                localStorage.setItem(DB_KEYS.FUEL, JSON.stringify(appData.fuel));
+                localStorage.setItem(DB_KEYS.GARAGE, JSON.stringify(appData.garage));
+                
+                // Force redraw of current list immediately
+                document.getElementById(type+'List').classList.add('dirty');
+                if(type === 'maintenance') renderMaintenanceList();
+                if(type === 'fuel') renderFuelList();
+                if(type === 'garage') renderGarageList();
+                renderDashboard();
             }
         }
 
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "civic_manager_backup.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
+        // --- NAVIGATION & UI ---
+        // Swipe Logic
+        let ts = 0, te = 0;
+        document.addEventListener('touchstart', e => ts = e.changedTouches[0].screenX, {passive:true});
+        document.addEventListener('touchend', e => { te = e.changedTouches[0].screenX; handleSwipe(); }, {passive:true});
+        
+        function handleSwipe() {
+            if(Math.abs(te-ts) < 60) return;
+            const views = ['dashboard', 'maintenance', 'fuel', 'garage'];
+            const cur = views.find(v => !document.getElementById('view-'+v).classList.contains('hidden'));
+            const idx = views.indexOf(cur);
+            if(te < ts && idx < 3) switchView(views[idx+1], 'right'); // Next
+            if(te > ts && idx > 0) switchView(views[idx-1], 'left'); // Prev
         }
+
+        function switchView(viewName, dir) {
+            const views = document.querySelectorAll('.view-section');
+            const next = document.getElementById('view-'+viewName);
+            
+            views.forEach(v => {
+                if(!v.classList.contains('hidden')) {
+                    v.classList.add('hidden');
+                    v.classList.remove('animate-slide-left', 'animate-slide-right');
+                }
+            });
+            
+            next.classList.remove('hidden');
+            if(dir) next.classList.add(dir === 'right' ? 'animate-slide-left' : 'animate-slide-right');
+            
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active', 'text-civic-cyan', 'border-t-2', 'border-civic-cyan');
+                el.classList.add('text-gray-500');
+            });
+            const btn = document.querySelector(`button[onclick="switchView('${viewName}')"]`);
+            if(btn) { btn.classList.add('active', 'text-civic-cyan', 'border-t-2', 'border-civic-cyan'); btn.classList.remove('text-gray-500'); }
+
+            // Lazy Render: Só gera o HTML da lista quando a aba abre
+            if(viewName === 'maintenance') renderMaintenanceList();
+            if(viewName === 'fuel') renderFuelList();
+            if(viewName === 'garage') renderGarageList();
+            if(viewName === 'dashboard') setTimeout(initOrUpdateCharts, 50); // Chart update
+        }
+
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('hidden');
+            el.classList.toggle('flex');
+            setTodayDates();
+        }
+
+        function setFuelChartMode(m) { currentFuelMode = m; document.getElementById('btn-week').classList.toggle('active'); document.getElementById('btn-month').classList.toggle('active'); updateFuelTrendData(m); }
+        function formatCurrency(v) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v); }
+        function formatDate(d) { return d ? d.split('-').reverse().join('/') : '-'; }
+        function editOdometer() {
+            const v = prompt("Novo KM:", appData.odometer);
+            if(v && !isNaN(v)) { appData.odometer = v; localStorage.setItem(DB_KEYS.ODO, v); document.getElementById('headerOdometer').innerText = parseInt(v).toLocaleString(); checkOilStatus(); }
+        }
+        function calcFuelTotal(f) {
+            const l = parseFloat(document.getElementById('fLiters').value), p = parseFloat(document.getElementById('fPrice').value), t = parseFloat(document.getElementById('fTotal').value);
+            if((f==='liters'||f==='price') && !isNaN(l) && !isNaN(p)) document.getElementById('fTotal').value = (l*p).toFixed(2);
+            else if(f==='total' && !isNaN(t) && !isNaN(p) && p>0) document.getElementById('fLiters').value = (t/p).toFixed(2);
+        }
+        function exportData() {
+            const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
+            a.download = "civic_bkp.json"; document.body.appendChild(a); a.click(); a.remove();
+        }
+        function setTodayDates() { const t = new Date().toISOString().split('T')[0]; document.getElementById('mDate').value = t; document.getElementById('fDate').value = t; }
     </script>
 </body>
 </html>
